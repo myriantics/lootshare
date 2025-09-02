@@ -3,13 +3,13 @@
 	"id": "lootshare",
 	"version": "${version}",
 	"name": "LootShare",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Allows players to lootshare drops from properly tagged entities.",
 	"authors": [
-		"Me!"
+		"Myriantics"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/myriantics/lootshare"
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/lootshare/icon.png",
