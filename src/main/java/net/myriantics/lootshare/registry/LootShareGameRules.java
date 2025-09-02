@@ -22,7 +22,7 @@ public abstract class LootShareGameRules {
     public static final GameRules.Key<GameRules.BooleanValue> RULE_SHARE_EXP = register(
             "shareExperience",
             GameRules.Category.DROPS,
-            true
+            false
     );
 
     public static final GameRules.Key<GameRules.BooleanValue> RULE_PROTECT_DROPS = register(
