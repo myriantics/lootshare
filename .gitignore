@@ -32,6 +32,9 @@ bin/
 
 run/
 
+# datagen BS
+src/main/generated/.cache
+
 # java
 
 hs_err_*.log

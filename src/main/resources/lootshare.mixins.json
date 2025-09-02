@@ -2,8 +2,9 @@
 	"required": true,
 	"package": "net.myriantics.lootshare.mixin",
 	"compatibilityLevel": "JAVA_21",
-	"mixins": [
-		"ExampleMixin"
+	"server": [
+      "LivingEntityMixin",
+      "EntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

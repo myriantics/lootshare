@@ -16,7 +16,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"net.myriantics.lootshare.LootShare"
+          "net.myriantics.lootshare.LootShareCommon"
 		],
 		"client": [
 			"net.myriantics.lootshare.LootShareClient"
