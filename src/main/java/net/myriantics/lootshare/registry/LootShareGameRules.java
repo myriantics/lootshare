@@ -16,7 +16,7 @@ public abstract class LootShareGameRules {
     public static final GameRules.Key<GameRules.BooleanValue> RULE_BYPASS_ALLOWLIST_TAG = register(
             "bypassAllowlistTag",
             GameRules.Category.DROPS,
-            true
+            false
     );
 
     public static final GameRules.Key<GameRules.BooleanValue> RULE_SHARE_EXP = register(
