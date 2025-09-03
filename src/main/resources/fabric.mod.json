@@ -8,10 +8,10 @@
 		"Myriantics"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
+		"homepage": "https://modrinth.com/mod/lootshare",
 		"sources": "https://github.com/myriantics/lootshare"
 	},
-	"license": "CC0-1.0",
+	"license": "MIT",
 	"icon": "assets/lootshare/icon.png",
 	"environment": "*",
 	"entrypoints": {
