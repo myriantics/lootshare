@@ -10,14 +10,15 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.DragonPhaseInstance;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
+import net.myriantics.lootshare.LootShareCommon;
 import net.myriantics.lootshare.registry.LootShareGameRules;
 import net.myriantics.lootshare.tag.LootShareEntityTypeTags;
 import net.myriantics.lootshare.util.LivingEntityMixinAccess;
-import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -32,15 +33,15 @@ import java.util.Map;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity implements LivingEntityMixinAccess {
+
     @Shadow
-    @Nullable
-    protected Player lastHurtByPlayer;
+    public abstract boolean isDeadOrDying();
 
     @Unique
-    private final Map<ServerPlayer, Integer> assistingPlayers = HashMap.newHashMap(128);
+    private final Map<ServerPlayer, Integer> lootshare$assistingPlayers = HashMap.newHashMap(128);
 
     @Unique
-    private ServerPlayer activeLootsharePlayer = null;
+    private ServerPlayer lootshare$activeLootsharePlayer = null;
 
     public LivingEntityMixin(EntityType<?> entityType, Level level) {
         super(entityType, level);
@@ -48,18 +49,20 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
 
     @Override
     public ServerPlayer lootshare$getActiveLootsharePlayer() {
-        return activeLootsharePlayer;
+        return lootshare$activeLootsharePlayer;
     }
 
+
+
     @Inject(
-            method = "hurt",
-            at = @At(value = "TAIL")
+            method = "actuallyHurt",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;setHealth(F)V")
     )
-    private void lootshare$addAttackingPlayers(DamageSource damageSource, float f, CallbackInfoReturnable<Boolean> cir) {
-        if (lastHurtByPlayer instanceof ServerPlayer serverPlayer) {
+    private void lootshare$addAttackingPlayers(DamageSource damageSource, float f, CallbackInfo ci) {
+        if (damageSource.getEntity() instanceof ServerPlayer serverPlayer) {
             // add player to the map and reset their ticks to the current tick
             // basically keep hitting the boss within a minute to keep the bonus items
-            assistingPlayers.put(serverPlayer, serverPlayer.server.getTickCount());
+            lootshare$assistingPlayers.put(serverPlayer, serverPlayer.server.getTickCount());
         }
     }
 
@@ -68,10 +71,16 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
             at = @At(value = "HEAD")
     )
     private void lootshare$purgeStaleAssistingPlayers(CallbackInfo ci) {
-        for (ServerPlayer serverPlayer : List.copyOf(assistingPlayers.keySet())) {
+        // we don't want to eliminate players if the entity has been defeated
+        if (lootshare$assistingPlayers.isEmpty() || isDeadOrDying()) {
+            LootShareCommon.LOGGER.info("THE HEAVY IS DEAD!!!!!11!!");
+            return;
+        }
+
+        for (ServerPlayer serverPlayer : List.copyOf(lootshare$assistingPlayers.keySet())) {
             // if a player is removed or if they've exceeded the max assist window ticks, bonk them from the map
-            if (serverPlayer.isRemoved() || (serverPlayer.server.getTickCount() - assistingPlayers.get(serverPlayer)) > serverPlayer.level().getGameRules().getInt(LootShareGameRules.RULE_ASSIST_WINDOW_TICKS)) {
-                assistingPlayers.remove(serverPlayer);
+            if (serverPlayer.isRemoved() || (serverPlayer.server.getTickCount() - lootshare$assistingPlayers.get(serverPlayer)) > serverPlayer.level().getGameRules().getInt(LootShareGameRules.RULE_ASSIST_WINDOW_TICKS)) {
+                lootshare$assistingPlayers.remove(serverPlayer);
             }
         }
     }
@@ -103,12 +112,12 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
             Operation<Void> original,
             @Share("lootshare.shouldLootshare") LocalBooleanRef shouldLootshare)
     {
-        if (shouldLootshare.get() && !assistingPlayers.isEmpty()) {
-            for (ServerPlayer serverPlayer : assistingPlayers.keySet()) {
-                activeLootsharePlayer = serverPlayer;
+        if (shouldLootshare.get() && !lootshare$assistingPlayers.isEmpty()) {
+            for (ServerPlayer serverPlayer : lootshare$assistingPlayers.keySet()) {
+                lootshare$activeLootsharePlayer = serverPlayer;
                 original.call(instance, damageSource, bl);
             }
-            activeLootsharePlayer = null;
+            lootshare$activeLootsharePlayer = null;
         } else {
             original.call(instance, damageSource, bl);
         }
@@ -126,12 +135,12 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
             Operation<Void> original,
             @Share("lootshare.shouldLootshare") LocalBooleanRef shouldLootshare
     ) {
-        if (shouldLootshare.get() && !assistingPlayers.isEmpty()) {
-            for (ServerPlayer serverPlayer : assistingPlayers.keySet()) {
-                activeLootsharePlayer = serverPlayer;
+        if (shouldLootshare.get() && !lootshare$assistingPlayers.isEmpty()) {
+            for (ServerPlayer serverPlayer : lootshare$assistingPlayers.keySet()) {
+                lootshare$activeLootsharePlayer = serverPlayer;
                 original.call(instance, serverLevel, damageSource, bl);
             }
-            activeLootsharePlayer = null;
+            lootshare$activeLootsharePlayer = null;
         } else {
             original.call(instance, serverLevel, damageSource, bl);
         }
@@ -147,12 +156,12 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
             Operation<Void> original,
             @Share("lootshare.shouldLootshare") LocalBooleanRef shouldLootshare
     ) {
-        if (shouldLootshare.get() && !assistingPlayers.isEmpty() && level().getGameRules().getBoolean(LootShareGameRules.RULE_SHARE_EXP)) {
-            for (ServerPlayer serverPlayer : assistingPlayers.keySet()) {
-                activeLootsharePlayer = serverPlayer;
+        if (shouldLootshare.get() && !lootshare$assistingPlayers.isEmpty() && level().getGameRules().getBoolean(LootShareGameRules.RULE_SHARE_EXP)) {
+            for (ServerPlayer serverPlayer : lootshare$assistingPlayers.keySet()) {
+                lootshare$activeLootsharePlayer = serverPlayer;
                 original.call(instance, entity);
             }
-            activeLootsharePlayer = null;
+            lootshare$activeLootsharePlayer = null;
         } else {
             original.call(instance, entity);
         }
