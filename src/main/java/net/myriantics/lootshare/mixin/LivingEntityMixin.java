@@ -73,7 +73,6 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityMi
     private void lootshare$purgeStaleAssistingPlayers(CallbackInfo ci) {
         // we don't want to eliminate players if the entity has been defeated
         if (lootshare$assistingPlayers.isEmpty() || isDeadOrDying()) {
-            LootShareCommon.LOGGER.info("THE HEAVY IS DEAD!!!!!11!!");
             return;
         }
 
